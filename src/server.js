@@ -18,9 +18,16 @@ const START_SERVER = () => {
 
   app.use(errorHandlingMiddleware);
 
-  app.listen(env.APP_PORT, env.APP_HOST, () => {
-    console.log(`Server running at http://${env.APP_HOST}:${env.APP_PORT}/`);
-  });
+  if (env.BUILD_MODE === 'production') {
+    app.listen(process.env.PORT, () => {
+      console.log(`Server running at production http://${process.env.PORT}`);
+    });
+  } else {
+    app.listen(env.APP_PORT, env.APP_HOST, () => {
+      console.log(`Server running at http://${env.APP_HOST}:${env.APP_PORT}/`);
+    });
+  }
+
 
   exitHook(() => {
     console.log('Closing MongoDB connection...');
