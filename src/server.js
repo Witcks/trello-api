@@ -1,26 +1,53 @@
+/* eslint-disable no-console */
 import express from 'express';
-// import { mapOrder } from '~/utils/sorts.js'
+import cros from 'cors';
+import exitHook from 'async-exit-hook';
+import { env } from '~/config/environment';
+import { corsOptions } from './config/cors';
+import { CONNECT_DB, CLOSE_DB } from '~/config/mongodb';
+import { APIs_V1 } from '~/routes/v1';
+import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware';
 
-const app = express();
+const START_SERVER = () => {
+  const app = express();
+  app.use(cros(corsOptions));
 
-const hostname = 'localhost';
-const port = 8017;
+  app.use(express.json());
 
-app.get('/', (req, res) => {
-  // Test Absolute import mapOrder
-  // console.log(mapOrder(
-  //   [ { id: 'id-1', name: 'One' },
-  //     { id: 'id-2', name: 'Two' },
-  //     { id: 'id-3', name: 'Three' },
-  //     { id: 'id-4', name: 'Four' },
-  //     { id: 'id-5', name: 'Five' } ],
-  //   ['id-5', 'id-4', 'id-2', 'id-3', 'id-1'],
-  //   'id'
-  // ))
-  res.end('<h1>Hello World!</h1><hr>');
-});
+  app.use('/v1', APIs_V1);
 
-app.listen(port, hostname, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Hello Trung Quan Dev, I am running at ${hostname}:${port}/`);
-});
+  app.use(errorHandlingMiddleware);
+
+  app.listen(env.APP_PORT, env.APP_HOST, () => {
+    console.log(`Server running at http://${env.APP_HOST}:${env.APP_PORT}/`);
+  });
+
+  exitHook(() => {
+    console.log('Closing MongoDB connection...');
+    CLOSE_DB();
+    console.log('MongoDB connection closed');
+  });
+};
+
+(async () => {
+  try {
+    console.log('Connecting to MongoDB...');
+    await CONNECT_DB();
+    console.log('Connected to MongoDB');
+
+    START_SERVER();
+  } catch (error) {
+    console.error('Error connecting to MongoDB:', error);
+    process.exit(0);
+  }
+})();
+
+// CONNECT_DB()
+//   .then(() => {
+//     console.log('Connected to MongoDB');
+//   })
+//   .then(() => START_SERVER())
+//   .catch((error) => {
+//     console.error('Error connecting to MongoDB:', error);
+//     process.exit(0);
+//   });
